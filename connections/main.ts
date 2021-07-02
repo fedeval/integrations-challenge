@@ -26,7 +26,7 @@ async function testAuthTransaction(): Promise<ParsedAuthorizationResponse> {
       currencyCode: 'GBP',
       paymentMethod: {
         expiryMonth: 4,
-        expiryYear: 2020,
+        expiryYear: 2022,
         cardholderName: 'Mr Foo Bar',
         cvv: '020',
         cardNumber: '4111111111111111',
