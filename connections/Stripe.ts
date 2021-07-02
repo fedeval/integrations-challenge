@@ -1,7 +1,6 @@
 import {
   APIKeyCredentials,
   CardDetails,
-  DeclineReason,
   ParsedAuthorizationResponse,
   ParsedCancelResponse,
   ParsedCaptureResponse,
@@ -13,6 +12,7 @@ import {
 
 import * as dotenv from 'dotenv'
 import HttpClient from '../common/HTTPClient';
+import { handleError } from './utils'
 
 dotenv.config()
 
@@ -62,13 +62,12 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
       headers: requestHeaders,
       body: paymentMethodRequestBody
     })
+    const paymentMethod = JSON.parse(paymentMethodResponse.responseText)
 
     // Handle any errors in the HTTPRequest
     if (paymentMethodResponse.statusCode !== 200) {
-      const errorObj = JSON.parse(paymentMethodResponse.responseText).error;
-      return handleAuthError(errorObj);
+      return handleError(paymentMethod.error) as ParsedAuthorizationResponse;
     }
-    const paymentMethod = JSON.parse(paymentMethodResponse.responseText)
 
     // Create paymentIntent object using the params in the raw request, the paymentMethod object id and the Stripe PaymentIntent API
     const paymentIntentRequestBody = `amount=${amount}&currency=${currencyCode.toLowerCase()}&confirm=true&payment_method=${paymentMethod.id}&capture_method=manual`   
@@ -77,18 +76,16 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
         headers: requestHeaders,
         body: paymentIntentRequestBody
       })
-    
-    // Handle any errors in the HTTPRequest
-    if (paymentIntentResponse.statusCode !== 200) {
-      const errorObj = JSON.parse(paymentMethodResponse.responseText).error;
-      return handleAuthError(errorObj);
-    }
     const paymentIntent = JSON.parse(paymentIntentResponse.responseText)
-  
-    // Parse the paymentIntent object and return
-    return {
-      processorTransactionId: paymentIntent.id,
-      transactionStatus: 'AUTHORIZED',
+
+    // Return if response ok and status is require_caputre, return error otherwise
+    if (paymentIntentResponse.statusCode === 200 && paymentIntent.status === 'requires_capture') {
+      return {
+        processorTransactionId: paymentIntent.id,
+        transactionStatus: 'AUTHORIZED',
+      }
+    } else {
+      return handleError(paymentIntent.error) as ParsedAuthorizationResponse;
     }
   },
 
@@ -96,10 +93,30 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
    * Capture a payment intent
    * This method should capture the funds on an authorized transaction
    */
-  capture(
+  async capture(
     request: RawCaptureRequest<APIKeyCredentials>,
   ): Promise<ParsedCaptureResponse> {
-    throw new Error('Method Not Implemented');
+
+    // Set request headers for all post requests
+    const requestHeaders = {
+      'Authorization': 'Bearer ' + request.processorConfig.apiKey,
+      'Content-type': 'application/x-www-form-urlencoded'
+    }
+
+    const capturePaymentIntentResponse = await HttpClient.request(`https://api.stripe.com/v1/payment_intents/${request.processorTransactionId}/capture`, {
+      method: 'post',
+      headers: requestHeaders,
+      body: ''
+    })
+    const capturedPaymentIntent = JSON.parse(capturePaymentIntentResponse.responseText)
+
+    if (capturePaymentIntentResponse.statusCode === 200 && capturedPaymentIntent.status === 'succeeded') {
+      return {
+        transactionStatus: 'SETTLED'
+      }
+    } else {
+      return handleError(capturedPaymentIntent.error) as ParsedCaptureResponse
+    }
   },
 
   /**
@@ -137,37 +154,5 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
     }
   },
 };
-
-
-// Error handling utility
-function handleAuthError(error): ParsedAuthorizationResponse {
-  if (error.code) {
-    let declineReason: DeclineReason = 'UNKNOWN'
-
-    switch (error.code) {
-      case 'do_not_honor':
-        declineReason = 'DO_NOT_HONOR'
-        break;
-
-      case 'insufficient_funds':
-        declineReason = 'INSUFFICIENT_FUNDS'
-
-      default:
-        break;
-    }
-
-    const response: ParsedAuthorizationResponse = {
-      declineReason: declineReason,
-      transactionStatus: 'DECLINED'
-    }
-    return response
-  } else {
-    const response: ParsedAuthorizationResponse = {
-      errorMessage: error.message,
-      transactionStatus: 'FAILED'
-    }
-    return response
-  }
-}
 
 export default StripeConnection;
