@@ -6,29 +6,32 @@ import {
 } from '@primer-io/app-framework';
 
 // Utility to handle request errors
-export function handleError(error): ParsedAuthorizationResponse | ParsedCaptureResponse | ParsedCancelResponse {
+export default function handleError(error: {
+  decline_code?: string;
+  message: string;
+}): ParsedAuthorizationResponse | ParsedCaptureResponse | ParsedCancelResponse {
   if (error.decline_code) {
-    let declineReason: DeclineReason = 'UNKNOWN'
+    let declineReason: DeclineReason = 'UNKNOWN';
 
     switch (error.decline_code) {
       case 'do_not_honor':
-        declineReason = 'DO_NOT_HONOR'
+        declineReason = 'DO_NOT_HONOR';
         break;
 
       case 'insufficient_funds':
-        declineReason = 'INSUFFICIENT_FUNDS'
+        declineReason = 'INSUFFICIENT_FUNDS';
+        break;
 
       default:
         break;
     }
     return {
-      declineReason: declineReason,
-      transactionStatus: 'DECLINED'
-    }
-  } else {
-    return {
-      errorMessage: error.message,
-      transactionStatus: 'FAILED'
-    }
+      declineReason,
+      transactionStatus: 'DECLINED',
+    };
   }
+  return {
+    errorMessage: error.message,
+    transactionStatus: 'FAILED',
+  };
 }
