@@ -54,37 +54,43 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
       amount,
       currencyCode
     } = request
-    
-    try {
 
-      // Create paymentMethod object using the params in the raw request and the Stripe PaymentMethod API
-      const paymentMethodRequestBody = `type=card&billing_details[name]=${cardholderName}&card[number]=${cardNumber}&card[exp_month]=${expiryMonth}&card[exp_year]=${expiryYear}&card[cvc]=${cvv}`
-      const paymentMethodResponse = await HttpClient.request('https://api.stripe.com/v1/payment_methods', {
-        method: 'post',
-        headers: requestHeaders,
-        body: paymentMethodRequestBody
-      })
-      const paymentMethod = JSON.parse(paymentMethodResponse.responseText)
+    // Create paymentMethod object using the params in the raw request and the Stripe PaymentMethod API
+    const paymentMethodRequestBody = `type=card&billing_details[name]=${cardholderName}&card[number]=${cardNumber}&card[exp_month]=${expiryMonth}&card[exp_year]=${expiryYear}&card[cvc]=${cvv}`
 
-      // Create paymentIntent object using the params in the raw request, the paymentMethod object id and the Stripe PaymentIntent API
-      const paymentIntentRequestBody = `amount=${amount}&currency=${currencyCode.toLowerCase()}&confirm=true&payment_method=${paymentMethod.id}&capture_method=manual`
-      const paymentIntentResponse = await HttpClient.request('https://api.stripe.com/v1/payment_intents', {
+    const paymentMethodResponse = await HttpClient.request('https://api.stripe.com/v1/payment_methods', {
+      method: 'post',
+      headers: requestHeaders,
+      body: paymentMethodRequestBody
+    })
+
+    if (paymentMethodResponse.statusCode !== 200) {
+      const errorObj = JSON.parse(paymentMethodResponse.responseText).error;
+      return handleAuthError(errorObj);
+    }
+ 
+    const paymentMethod = JSON.parse(paymentMethodResponse.responseText)
+
+    // Create paymentIntent object using the params in the raw request, the paymentMethod object id and the Stripe PaymentIntent API
+    const paymentIntentRequestBody = `amount=${amount}&currency=${currencyCode.toLowerCase()}&confirm=true&payment_method=${paymentMethod.id}&capture_method=manual`   
+
+    const paymentIntentResponse = await HttpClient.request('https://api.stripe.com/v1/payment_intents', {
         method: 'post',
         headers: requestHeaders,
         body: paymentIntentRequestBody
       })
-      const paymentIntent = JSON.parse(paymentIntentResponse.responseText)
 
-      // Parse the paymentIntent object and return 
-      const response: ParsedAuthorizationResponse = {
-        processorTransactionId: paymentIntent.id,
-        transactionStatus: 'AUTHORIZED',
-      }
-      return response
-
-    } catch (error) {
-      // Handle the declined and failed auth cases
-      return handleAuthError(error)
+    if (paymentIntentResponse.statusCode !== 200) {
+      const errorObj = JSON.parse(paymentMethodResponse.responseText).error;
+      return handleAuthError(errorObj);
+    }
+    
+    const paymentIntent = JSON.parse(paymentIntentResponse.responseText)
+  
+    // Parse the paymentIntent object and return
+    return {
+      processorTransactionId: paymentIntent.id,
+      transactionStatus: 'AUTHORIZED',
     }
   },
 
@@ -110,10 +116,10 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
 };
 
 function handleAuthError(error): ParsedAuthorizationResponse {
-  if (error.declineCode) {
+  if (error.code) {
     let declineReason: DeclineReason = 'UNKNOWN'
 
-    switch (error.declineCode) {
+    switch (error.code) {
       case 'do_not_honor':
         declineReason = 'DO_NOT_HONOR'
         break;
@@ -132,7 +138,7 @@ function handleAuthError(error): ParsedAuthorizationResponse {
     return response
   } else {
     const response: ParsedAuthorizationResponse = {
-      errorMessage: error.errorMessage,
+      errorMessage: error.message,
       transactionStatus: 'FAILED'
     }
     return response
