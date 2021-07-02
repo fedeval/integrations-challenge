@@ -1,6 +1,7 @@
 import {
   APIKeyCredentials,
   CardDetails,
+  DeclineReason,
   ParsedAuthorizationResponse,
   ParsedCancelResponse,
   ParsedCaptureResponse,
@@ -49,7 +50,6 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
     }: CardDetails = request.paymentMethod
 
     const paymentMethodRequestBody = `type=card&billing_details[name]=${cardholderName}&card[number]=${cardNumber}&card[exp_month]=${expiryMonth}&card[exp_year]=${expiryYear}&card[cvc]=${cvv}`
-
     const paymentMethodResponse = await HttpClient.request('https://api.stripe.com/v1/payment_methods', {
       method: 'post',
       headers: requestHeaders,
@@ -63,18 +63,48 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
       currencyCode
     } = request
 
-    const paymentIntentRequestBody = `amount=${amount}&currency=${currencyCode.toLowerCase()}&confirm=true&payment_method=${paymentMethod.id}&capture_method=manual`
-    const paymentIntentResponse = await HttpClient.request('https://api.stripe.com/v1/payment_intents', {
-      method: 'post',
-      headers: requestHeaders,
-      body: paymentIntentRequestBody
-    })
+    try {
+      const paymentIntentRequestBody = `amount=${amount}&currency=${currencyCode.toLowerCase()}&confirm=true&payment_method=${paymentMethod.id}&capture_method=manual`
+      const paymentIntentResponse = await HttpClient.request('https://api.stripe.com/v1/payment_intents', {
+        method: 'post',
+        headers: requestHeaders,
+        body: paymentIntentRequestBody
+      })
+      const paymentIntent = JSON.parse(paymentIntentResponse.responseText)
+      const response: ParsedAuthorizationResponse = {
+        processorTransactionId: paymentIntent.id,
+        transactionStatus: 'AUTHORIZED',
+      }
+      return response
+    } catch (error) {
+      if(error.declineCode) {
+        let declineReason: DeclineReason = 'UNKNOWN'
+        switch (error.declineCode) {
+          case 'do_not_honor':
+            declineReason = 'DO_NOT_HONOR'
+            break;
+          
+          case 'insufficient_funds':
+            declineReason = 'INSUFFICIENT_FUNDS'
 
-    const paymentIntent = JSON.parse(paymentIntentResponse.responseText)
+          default:
+            break;
+        }
+        const response: ParsedAuthorizationResponse = {
+          declineReason: declineReason,
+          transactionStatus: 'DECLINED'
+        }
+        return response
+      } else {
+        const response: ParsedAuthorizationResponse = {
+          errorMessage: error.errorMessage,
+          transactionStatus: 'FAILED'
+        }
+        return response
+      }
+    }
 
     // TODO: parse the auth response
-
-    throw new Error('Method Not Implemented');
   },
 
   /**
