@@ -106,13 +106,34 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
    * Cancel a payment intent
    * This one should cancel an authorized transaction
    */
-  cancel(
+  async cancel(
     request: RawCancelRequest<APIKeyCredentials>,
   ): Promise<ParsedCancelResponse> {
-    throw new Error('Method Not Implemented');
+
+    const requestHeaders = {
+      'Authorization': 'Bearer ' + request.processorConfig.apiKey,
+      'Content-type': 'application/x-www-form-urlencoded'
+    }
+
+    const cancelPaymentIntentResponse = await HttpClient.request(`https://api.stripe.com/v1/payment_intents/${request.processorTransactionId}/cancel`, {
+      method: 'post',
+      headers: requestHeaders,
+      body: ''
+    })
+    const cancelledPaymentIntent = JSON.parse(cancelPaymentIntentResponse.responseText)
+    
+    if (cancelPaymentIntentResponse.statusCode === 200 && cancelledPaymentIntent.status === 'canceled') {
+      return {
+        transactionStatus: 'CANCELLED',
+      } 
+    } else {
+      return handleAuthError(cancelledPaymentIntent.error);
+    }
   },
 };
 
+
+// Error handling utility
 function handleAuthError(error): ParsedAuthorizationResponse {
   if (error.code) {
     let declineReason: DeclineReason = 'UNKNOWN'
