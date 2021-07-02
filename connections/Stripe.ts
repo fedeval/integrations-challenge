@@ -137,10 +137,7 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
         transactionStatus: 'CANCELLED',
       } 
     } else {
-      return {
-        transactionStatus: 'FAILED',
-        errorMessage: cancelledPaymentIntent.error.message
-      };
+      return handleError(cancelledPaymentIntent.error) as ParsedCancelResponse;
     }
   },
 };

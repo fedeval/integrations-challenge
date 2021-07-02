@@ -6,7 +6,7 @@ import {
 } from '@primer-io/app-framework';
 
 // Utility to handle request errors
-export function handleError(error): ParsedAuthorizationResponse | ParsedCaptureResponse {
+export function handleError(error): ParsedAuthorizationResponse | ParsedCaptureResponse | ParsedCancelResponse {
   if (error.decline_code) {
     let declineReason: DeclineReason = 'UNKNOWN'
 
