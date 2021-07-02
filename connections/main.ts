@@ -8,8 +8,8 @@ import StripeConnection from './Stripe';
 (async () => {
   console.log('\n=== TEST: authorization ===');
   await testAuthTransaction();
-  // console.log('\n=== TEST: capture ===');
-  // await testCaptureTransaction();
+  console.log('\n=== TEST: capture ===');
+  await testCaptureTransaction();
   console.log('\n=== TEST: cancel ===');
   await testCancelTransaction();
 })();
@@ -85,32 +85,32 @@ async function testCancelTransaction(): Promise<void> {
   }
 }
 
-// async function testCaptureTransaction(): Promise<void> {
-//   const authResponse = await testAuthTransaction();
+async function testCaptureTransaction(): Promise<void> {
+  const authResponse = await testAuthTransaction();
 
-//   console.log('Capturing authorized payment...');
+  console.log('Capturing authorized payment...');
 
-//   if (authResponse.transactionStatus !== 'AUTHORIZED') {
-//     console.error('Transaction must be AUTHORIZED in order to capture it');
-//     process.exit(1);
-//   }
+  if (authResponse.transactionStatus !== 'AUTHORIZED') {
+    console.error('Transaction must be AUTHORIZED in order to capture it');
+    process.exit(1);
+  }
 
-//   let response: ParsedCaptureResponse | null = null;
+  let response: ParsedCaptureResponse | null = null;
 
-//   try {
-//     response = await StripeConnection.capture({
-//       processorTransactionId: authResponse.processorTransactionId,
-//       processorConfig: StripeConnection.configuration,
-//     });
-//   } catch (e) {
-//     console.error('Error while capturing transaction:');
-//     console.error(e);
-//     process.exit(1);
-//   }
+  try {
+    response = await StripeConnection.capture({
+      processorTransactionId: authResponse.processorTransactionId,
+      processorConfig: StripeConnection.configuration,
+    });
+  } catch (e) {
+    console.error('Error while capturing transaction:');
+    console.error(e);
+    process.exit(1);
+  }
 
-//   if (response.transactionStatus !== 'SETTLED') {
-//     console.error(
-//       `Expected transaction status to be "SETTLED" but received "${response.transactionStatus}"`,
-//     );
-//   }
-// }
+  if (response.transactionStatus !== 'SETTLED') {
+    console.error(
+      `Expected transaction status to be "SETTLED" but received "${response.transactionStatus}"`,
+    );
+  }
+}

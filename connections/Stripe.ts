@@ -110,11 +110,13 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
     request: RawCancelRequest<APIKeyCredentials>,
   ): Promise<ParsedCancelResponse> {
 
+    // Set request headers for all post requests
     const requestHeaders = {
       'Authorization': 'Bearer ' + request.processorConfig.apiKey,
       'Content-type': 'application/x-www-form-urlencoded'
     }
 
+    // User the Stripe PaymentIntent  to cancel the transaction
     const cancelPaymentIntentResponse = await HttpClient.request(`https://api.stripe.com/v1/payment_intents/${request.processorTransactionId}/cancel`, {
       method: 'post',
       headers: requestHeaders,
@@ -122,12 +124,16 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
     })
     const cancelledPaymentIntent = JSON.parse(cancelPaymentIntentResponse.responseText)
     
+    // Return the CANCELLED transactionStatus if the request to the Stripe API was ok, else return error message as well
     if (cancelPaymentIntentResponse.statusCode === 200 && cancelledPaymentIntent.status === 'canceled') {
       return {
         transactionStatus: 'CANCELLED',
       } 
     } else {
-      return handleAuthError(cancelledPaymentIntent.error);
+      return {
+        transactionStatus: 'FAILED',
+        errorMessage: cancelledPaymentIntent.error.message
+      };
     }
   },
 };
