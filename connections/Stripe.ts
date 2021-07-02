@@ -10,7 +10,7 @@ import {
   RawCaptureRequest,
 } from '@primer-io/app-framework';
 
-import dotenv from 'dotenv'
+import * as dotenv from 'dotenv'
 import HttpClient from '../common/HTTPClient';
 
 dotenv.config()
@@ -29,9 +29,33 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
    *
    * You should authorize a transaction and return an appropriate response
    */
-  authorize(
+  async authorize(
     request: RawAuthorizationRequest<APIKeyCredentials, CardDetails>,
   ): Promise<ParsedAuthorizationResponse> {
+
+    const { 
+      expiryMonth,
+      expiryYear,
+      cardholderName,
+      cvv,
+      cardNumber 
+    }: CardDetails = request.paymentMethod
+
+    const paymentMethodRequestBody = `type=card&billing_details[name]=${cardholderName}&card[number]=${cardNumber}&card[exp_month]=${expiryMonth}&card[exp_year]=${expiryYear}&card[cvc]=${cvv}`
+
+    // Create a payment method object using card details
+    const paymentMethod = await HttpClient.request('https://api.stripe.com/v1/payment_methods', {
+      method: 'post',
+      headers: {
+        'Authorization': 'Bearer ' + request.processorConfig.apiKey,
+        'Content-type': 'application/x-www-form-urlencoded'
+      },
+      body: paymentMethodRequestBody
+    })
+
+    // TODO: create a payment intent connected to payment method
+    // TODO: parse the auth response
+
     throw new Error('Method Not Implemented');
   },
 
