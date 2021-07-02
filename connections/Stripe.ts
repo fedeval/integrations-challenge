@@ -26,10 +26,6 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
     apiKey: process.env.STRIPE_API_KEY as string, 
   },
 
-  /**
-   *
-   * You should authorize a transaction and return an appropriate response
-   */
   async authorize(
     request: RawAuthorizationRequest<APIKeyCredentials, CardDetails>,
   ): Promise<ParsedAuthorizationResponse> {
@@ -89,10 +85,6 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
     }
   },
 
-  /**
-   * Capture a payment intent
-   * This method should capture the funds on an authorized transaction
-   */
   async capture(
     request: RawCaptureRequest<APIKeyCredentials>,
   ): Promise<ParsedCaptureResponse> {
@@ -103,6 +95,7 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
       'Content-type': 'application/x-www-form-urlencoded'
     }
 
+    // Capture paymentIntent using the Stripe PaymentIntent API Capture endpoint
     const capturePaymentIntentResponse = await HttpClient.request(`https://api.stripe.com/v1/payment_intents/${request.processorTransactionId}/capture`, {
       method: 'post',
       headers: requestHeaders,
@@ -110,6 +103,7 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
     })
     const capturedPaymentIntent = JSON.parse(capturePaymentIntentResponse.responseText)
 
+    // Return updated transactionStatus if res ok and status succeeded, else return error
     if (capturePaymentIntentResponse.statusCode === 200 && capturedPaymentIntent.status === 'succeeded') {
       return {
         transactionStatus: 'SETTLED'
@@ -119,10 +113,6 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
     }
   },
 
-  /**
-   * Cancel a payment intent
-   * This one should cancel an authorized transaction
-   */
   async cancel(
     request: RawCancelRequest<APIKeyCredentials>,
   ): Promise<ParsedCancelResponse> {
