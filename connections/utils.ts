@@ -7,10 +7,10 @@ import {
 
 // Utility to handle request errors
 export function handleError(error): ParsedAuthorizationResponse | ParsedCaptureResponse {
-  if (error.code) {
+  if (error.decline_code) {
     let declineReason: DeclineReason = 'UNKNOWN'
 
-    switch (error.code) {
+    switch (error.decline_code) {
       case 'do_not_honor':
         declineReason = 'DO_NOT_HONOR'
         break;
