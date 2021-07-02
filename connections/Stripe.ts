@@ -78,7 +78,7 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
     );
     const paymentIntent = JSON.parse(paymentIntentResponse.responseText);
 
-    // Return if response ok and status is require_caputre, return error otherwise
+    // Handle any failed request or incorrect status
     if (
       paymentIntentResponse.statusCode !== 200 ||
       paymentIntent.status !== 'requires_capture'
@@ -114,7 +114,7 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
       capturePaymentIntentResponse.responseText,
     );
 
-    // Return updated transactionStatus if res ok and status succeeded, else return error
+    // Handle any failed request or incorrect status
     if (
       capturePaymentIntentResponse.statusCode !== 200 ||
       capturedPaymentIntent.status !== 'succeeded'
@@ -149,7 +149,7 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
       cancelPaymentIntentResponse.responseText,
     );
 
-    // Return the CANCELLED transactionStatus if the request to the Stripe API was ok, else return error message as well
+    // Handle any failed request or incorrect status
     if (
       cancelPaymentIntentResponse.statusCode !== 200 &&
       cancelledPaymentIntent.status !== 'canceled'
