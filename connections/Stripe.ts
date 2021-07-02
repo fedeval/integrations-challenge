@@ -10,7 +10,10 @@ import {
   RawCaptureRequest,
 } from '@primer-io/app-framework';
 
+import dotenv from 'dotenv'
 import HttpClient from '../common/HTTPClient';
+
+dotenv.config()
 
 const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
   name: 'STRIPE',
@@ -18,8 +21,8 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
   website: 'stripe.com',
 
   configuration: {
-    accountId: '...Find a unique ID for the accounnt annd put it here...',
-    apiKey: '...Paste your stripe API key here...',
+    accountId: process.env.STRIPE_ACCOUNT_ID as string,
+    apiKey: process.env.STRIPE_API_KEY as string, 
   },
 
   /**
