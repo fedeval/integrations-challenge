@@ -33,6 +33,13 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
     request: RawAuthorizationRequest<APIKeyCredentials, CardDetails>,
   ): Promise<ParsedAuthorizationResponse> {
 
+    // Set request headers for all post requests
+    const requestHeaders = {
+      'Authorization': 'Bearer ' + request.processorConfig.apiKey,
+      'Content-type': 'application/x-www-form-urlencoded'
+    }
+
+    // Create a payment method object using card details
     const { 
       expiryMonth,
       expiryYear,
@@ -43,17 +50,28 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
 
     const paymentMethodRequestBody = `type=card&billing_details[name]=${cardholderName}&card[number]=${cardNumber}&card[exp_month]=${expiryMonth}&card[exp_year]=${expiryYear}&card[cvc]=${cvv}`
 
-    // Create a payment method object using card details
-    const paymentMethod = await HttpClient.request('https://api.stripe.com/v1/payment_methods', {
+    const paymentMethodResponse = await HttpClient.request('https://api.stripe.com/v1/payment_methods', {
       method: 'post',
-      headers: {
-        'Authorization': 'Bearer ' + request.processorConfig.apiKey,
-        'Content-type': 'application/x-www-form-urlencoded'
-      },
+      headers: requestHeaders,
       body: paymentMethodRequestBody
     })
+    const paymentMethod = JSON.parse(paymentMethodResponse.responseText)
+  
+    // Create a paymentIntent object, authorize if credentials are valid and set to "requires_capture" status
+    const {
+      amount,
+      currencyCode
+    } = request
 
-    // TODO: create a payment intent connected to payment method
+    const paymentIntentRequestBody = `amount=${amount}&currency=${currencyCode.toLowerCase()}&confirm=true&payment_method=${paymentMethod.id}&capture_method=manual`
+    const paymentIntentResponse = await HttpClient.request('https://api.stripe.com/v1/payment_intents', {
+      method: 'post',
+      headers: requestHeaders,
+      body: paymentIntentRequestBody
+    })
+
+    const paymentIntent = JSON.parse(paymentIntentResponse.responseText)
+
     // TODO: parse the auth response
 
     throw new Error('Method Not Implemented');
