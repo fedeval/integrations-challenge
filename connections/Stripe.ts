@@ -40,7 +40,7 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
       'Content-type': 'application/x-www-form-urlencoded'
     }
 
-    // Get payment method details
+    // Get paymentMethod details from params
     const { 
       expiryMonth,
       expiryYear,
@@ -49,7 +49,7 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
       cardNumber 
     }: CardDetails = request.paymentMethod
     
-    // Create a paymentIntent details
+    // Get paymentIntent details from params
     const {
       amount,
       currencyCode
@@ -57,34 +57,32 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
 
     // Create paymentMethod object using the params in the raw request and the Stripe PaymentMethod API
     const paymentMethodRequestBody = `type=card&billing_details[name]=${cardholderName}&card[number]=${cardNumber}&card[exp_month]=${expiryMonth}&card[exp_year]=${expiryYear}&card[cvc]=${cvv}`
-
     const paymentMethodResponse = await HttpClient.request('https://api.stripe.com/v1/payment_methods', {
       method: 'post',
       headers: requestHeaders,
       body: paymentMethodRequestBody
     })
 
+    // Handle any errors in the HTTPRequest
     if (paymentMethodResponse.statusCode !== 200) {
       const errorObj = JSON.parse(paymentMethodResponse.responseText).error;
       return handleAuthError(errorObj);
     }
- 
     const paymentMethod = JSON.parse(paymentMethodResponse.responseText)
 
     // Create paymentIntent object using the params in the raw request, the paymentMethod object id and the Stripe PaymentIntent API
     const paymentIntentRequestBody = `amount=${amount}&currency=${currencyCode.toLowerCase()}&confirm=true&payment_method=${paymentMethod.id}&capture_method=manual`   
-
     const paymentIntentResponse = await HttpClient.request('https://api.stripe.com/v1/payment_intents', {
         method: 'post',
         headers: requestHeaders,
         body: paymentIntentRequestBody
       })
-
+    
+    // Handle any errors in the HTTPRequest
     if (paymentIntentResponse.statusCode !== 200) {
       const errorObj = JSON.parse(paymentMethodResponse.responseText).error;
       return handleAuthError(errorObj);
     }
-    
     const paymentIntent = JSON.parse(paymentIntentResponse.responseText)
   
     // Parse the paymentIntent object and return
