@@ -129,10 +129,17 @@ curl https://api.stripe.com/v1/payment_methods \
 ```
 The API only requires a `type` parameter, which is an enum taking 18 different methods. In our case, the only other information provided were card details and the name of the cardholder. We can then pass the `id` of the PaymentMethod object this API request returns to as a parameter in the body of our PaymentIntent request.
 
-
 ### Error Handling ###
 
+Reading through the `app-framework/index.d.ts` was helpful to understand how to handle failed and/or declined API request since no error handling was done included in the `common/HTTPClient.ts`. In this case the distinction between a `FAILED`request and a `DECLINED` one stood out to me and doing some research in the stripe docs I found that there are three possible reasons why a credit card payment might fail:
 
+1. Payments declined by card issuers
+2. Blocked payments
+3. Invalid API calls
+
+The first reason is the only one for which the object returned by the API call includes a [decline_code](https://stripe.com/docs/declines/codes) such as for example `do_not_honor` or `insufficient_funds` which were options provided in the `DeclineReason`interface in the started code. Hence, I opted to consider as `DECLINED` all requests that would include a `decline_code`and as `FAILED` all other request that would return some sort of error.
+
+To handle errors I created a utility function which I put in a separate `utils.ts` module to keep code modular and more readable.
 
 ---
 
@@ -140,8 +147,11 @@ The API only requires a `type` parameter, which is an enum taking 18 different m
 
 ### Testing API Endpoints ###
 
-Use Postman to test requests and understand
+As a final step before actually starting to write some code I used [Postman](https://www.postman.com/) to test Stripe's API endpoints, see what was the expect shape of the request as well as that of the response objects. This was particularly helpful to figure out that:
+
+* Authentication is done through Bearer Tokens in the request headers where the token is the Secret API Key provided in the Stripe dashboard.
+* The API requires `'application/x-www-form-urlencoded'` as a Content Type rather than JSON or plain text for instance.
 
 ### Code, Test, Refactor ###
 
-Write each method and then stress test it by trying to break it modifiyin both input parameters and the input to each API calls used.
+Once I had been through all the steps described the code I got into writing the actual code. I stress tested my code mainly using `console.log`and modifying the input parameters in the `main.ts` manually as well as using some inputs provided by Stripe at [https://stripe.com/docs/testing](https://stripe.com/docs/testing) to test specific error cases such as a declined transaction for `insufficient_funds` for instance. I have included comments in the code itself to document how I broke down each methods in different steps.
