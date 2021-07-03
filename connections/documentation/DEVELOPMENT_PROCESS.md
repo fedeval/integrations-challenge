@@ -54,45 +54,94 @@ Often 2 and 3 happen at the same time, but in our case we are creating an integr
 ### Resources ###
 * [Stripe Docs - Place on Hold a Card](https://stripe.com/docs/payments/capture-later)
 * [Stripe Docs - PaymentIntents API](https://stripe.com/docs/api/payment_intents)
-* [Stripe Docs - PaymentMethods API](https://stripe.com/docs/api/payment_methods)
-* [Stripe Docs - Declines](https://stripe.com/docs/declines)
 
-### Authorisation ###
 
-Lorem ipsum
+### Authorization ###
+
+Authorizing a payment in Stripe is the equivalent of creating a PaymentIntent object. To create a PaymentIntent we can use a `POST` request to the PaymentIntents API endpoint which requires a secret API key as an Authorization Bearer Token in the headers, and a body including at least an `amount` and `currency`parameters. Where: 
+* `amount`: positive integer representing how much to charge in the smallest currency unit (e.g., 100 cents to charge $1.00 or 100 to charge ¥100, a zero-decimal currency).
+* `currency`: three-letter ISO currency code, in lowercase.
+
+```bash
+curl https://api.stripe.com/v1/payment_intents \
+  -u SECRET_API_KEY: \
+  -d "amount"=1099 \
+  -d "currency"="eur" \
+```
+
+Note that by default the PaymentIntents API sets the `capture_method` parameter to `automatic`, meaning Authorization and Capture are executed automatically in sequence. IN our case, we want to execute Capture separately, hence we need to add the parameter `capture_method=manual` to the body of our API request.
+
 
 ### Capture ###
 
-Lorem ipsum
+After the card is authorized, the PaymentIntent status will transition to `requires_capture`. To capture the authorized funds, we can make a PaymentIntent capture `POST` request as such:
+
+```bash
+curl https://api.stripe.com/v1/payment_intents/PAYMENT_INTENT_ID/capture \
+  -u SECRET_API_KEY:
+```
+
+Note that we only need to provide a PaymentIntent ID and the secret API key.
+
 
 ### Cancel ###
+
+As part of our integration we also want the option to cancel a PaymentIntent if we no longer intend to use it to collect payment from the customer. To do so, we can make a PaymentIntent cancel `POST` request:
+
+```bash
+curl https://api.stripe.com/v1/payment_intents/PAYMENT_INTENT_ID/cancel \
+  -u SECRET_API_KEY:
+```
+
+As for the cancel request, we only need to provide a PaymentIntent ID and the secret API key.
 
 ---
 
 ## 3. Review the starter code ##
 
-- Types
-- Testing
-- Implementation of HTTP Client
+### Resources ###
+* [Stripe Docs - PaymentMethods API](https://stripe.com/docs/api/payment_methods)
+* [Stripe Docs - Declines](https://stripe.com/docs/declines)
+
+### Summary ###
+
+This step was necessary to understand the shape of each data structure used in the integration, which input parameters would be used for each method as well as the expected shape of the output. The key file I reviewed were:
+* `app-framework/index.d.ts`: To see all the type definitions and interfaced used in the integretion.
+* `common/HTTPClient.ts`: To understand how the requests to Stripe's endpoint would be sent and handled.
+* `connections/main.ts`: To understand how the method would be tested and se examples of how the input parameters where provided.
+
+### Payment Methods ###
+
+One key thing I noticed at this stage was that in the Authorize method in `main.ts` a CardDetails interface was passed as an input parameter containing details on the payment method. However, the PaymentIntents API endpoint only takes a `payment_method` id as an optional parameter stating: 
+the ID of the payment method (a PaymentMethod, Card, or compatible Source object) to attach to this PaymentIntent. 
+
+Reading through the docs I found another endpoint which allows us to create a PaymentMethod objects representing a customer's payment instruments.
+
+```bash
+curl https://api.stripe.com/v1/payment_methods \
+  -u SECRET_API_KEY: \
+  -d type=card \
+  -d "card[number]"=4242424242424242 \
+  -d "card[exp_month]"=7 \
+  -d "card[exp_year]"=2022 \
+  -d "card[cvc]"=314 \
+  -d "billing_details[name]"="Foo Bar"
+```
+The API only requires a `type` parameter, which is an enum taking 18 different methods. In our case, the only other information provided were card details and the name of the cardholder. We can then pass the `id` of the PaymentMethod object this API request returns to as a parameter in the body of our PaymentIntent request.
+
+
+### Error Handling ###
+
+
 
 ---
 
-## 4. Code, Test, Refactor ##
+## 4. Writing the code ##
 
-### Authorize ###
+### Testing API Endpoints ###
 
-* Inputs:
-* Execution:
-* Output:
+Use Postman to test requests and understand
 
-### Capture ###
+### Code, Test, Refactor ###
 
-* Inputs:
-* Execution:
-* Output:
-
-### Cancel ###
-
-* Inputs:
-* Execution:
-* Output:
+Write each method and then stress test it by trying to break it modifiyin both input parameters and the input to each API calls used.
