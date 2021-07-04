@@ -7,12 +7,12 @@ import {
   RawCaptureRequest,
   RawCancelRequest,
   APIKeyCredentials,
-  CardDetails
+  CardDetails,
 } from '@primer-io/app-framework';
 
 // Utility to handle request errors
 export function handleError(error: {
-  decline_code?: string;
+  decline_code?: string; // eslint-disable-line
   message: string;
 }): ParsedAuthorizationResponse | ParsedCaptureResponse | ParsedCancelResponse {
   if (error.decline_code) {
@@ -42,9 +42,17 @@ export function handleError(error: {
 }
 
 // Utility to set API request headers
-export function setRequestHeaders(request: RawAuthorizationRequest<APIKeyCredentials, CardDetails> | RawCaptureRequest<APIKeyCredentials> | RawCancelRequest<APIKeyCredentials>) {
+export function setRequestHeaders(
+  request:
+    | RawAuthorizationRequest<APIKeyCredentials, CardDetails>
+    | RawCaptureRequest<APIKeyCredentials>
+    | RawCancelRequest<APIKeyCredentials>,
+): {
+  'Authorization': string;
+  'Content-type': string;
+} {
   return {
     'Authorization': `Bearer ${request.processorConfig.apiKey}`,
     'Content-type': 'application/x-www-form-urlencoded',
-  }
+  };
 }

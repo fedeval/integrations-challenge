@@ -16,6 +16,7 @@ module.exports = {
     'import/no-unresolved': 'off',
     'no-console': 'off',
     'no-use-before-define': ['error', { functions: false }],
+    "@typescript-eslint/ban-ts-comment": "off"
   },
   env: {
     browser: true,

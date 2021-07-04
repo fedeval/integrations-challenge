@@ -29,7 +29,6 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
   async authorize(
     request: RawAuthorizationRequest<APIKeyCredentials, CardDetails>,
   ): Promise<ParsedAuthorizationResponse> {
-
     // Get paymentMethod details from params
     const {
       expiryMonth,
