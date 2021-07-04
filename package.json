@@ -36,6 +36,6 @@
     "start:payment-methods": "ts-node checkout/server.ts",
     "prettier": "prettier --config prettier.config.js 'connections/*.ts' --write",
     "lint": "eslint . --ext .ts",
-    "jasmine": "jasmine-ts"
+    "test": "jasmine-ts"
   }
 }

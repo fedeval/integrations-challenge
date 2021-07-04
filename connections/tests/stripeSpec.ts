@@ -17,6 +17,10 @@ const testCard: CardDetails = {
   cvv: '020',
   cardNumber: '4111111111111111',
 }
+const testCardErrors = {
+  insufficient_fund: '4000000000009995',
+  incorrect_number: '4242424242424241'
+}
 
 describe('Authorize method', () => {
   it('returns transactionStatus AUTHORIZED when provided valid inputs', async() => {
@@ -26,5 +30,34 @@ describe('Authorize method', () => {
       paymentMethod: { ...testCard }
     })
     expect(response.transactionStatus).toBe('AUTHORIZED')
+  })
+
+  it('returns a transactionId when provided valid inputs', async () => {
+    const response: ParsedAuthorizationResponse = await StripeConnection.authorize({
+      processorConfig,
+      ...testTransaction,
+      paymentMethod: { ...testCard }
+    })
+    expect(Object.keys(response).includes('processorTransactionId')).toBe(true)
+  })
+
+  it('returns transactionStatus DECLINED when authorization request is declined', async () => {
+    testCard.cardNumber = testCardErrors.insufficient_fund
+    const response: ParsedAuthorizationResponse = await StripeConnection.authorize({
+      processorConfig,
+      ...testTransaction,
+      paymentMethod: { ...testCard }
+    })
+    expect(response.transactionStatus).toBe('DECLINED')
+  })
+
+  it('returns a declineReason when authorization request is declined', async () => {
+    testCard.cardNumber = testCardErrors.insufficient_fund
+    const response: ParsedAuthorizationResponse = await StripeConnection.authorize({
+      processorConfig,
+      ...testTransaction,
+      paymentMethod: { ...testCard }
+    })
+    expect(Object.keys(response).includes('declineReason')).toBe(true)
   })
 })
