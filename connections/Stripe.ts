@@ -12,7 +12,7 @@ import {
 
 import * as dotenv from 'dotenv';
 import HttpClient from '../common/HTTPClient';
-import handleError from './utils';
+import { handleError, setRequestHeaders } from './utils';
 
 dotenv.config();
 
@@ -29,11 +29,6 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
   async authorize(
     request: RawAuthorizationRequest<APIKeyCredentials, CardDetails>,
   ): Promise<ParsedAuthorizationResponse> {
-    // Set request headers for all post requests
-    const requestHeaders = {
-      'Authorization': `Bearer ${request.processorConfig.apiKey}`,
-      'Content-type': 'application/x-www-form-urlencoded',
-    };
 
     // Get paymentMethod details from params
     const {
@@ -53,7 +48,7 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
       'https://api.stripe.com/v1/payment_methods',
       {
         method: 'post',
-        headers: requestHeaders,
+        headers: setRequestHeaders(request),
         body: paymentMethodRequestBody,
       },
     );
@@ -72,7 +67,7 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
       'https://api.stripe.com/v1/payment_intents',
       {
         method: 'post',
-        headers: requestHeaders,
+        headers: setRequestHeaders(request),
         body: paymentIntentRequestBody,
       },
     );
@@ -95,18 +90,12 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
   async capture(
     request: RawCaptureRequest<APIKeyCredentials>,
   ): Promise<ParsedCaptureResponse> {
-    // Set request headers for all post requests
-    const requestHeaders = {
-      'Authorization': `Bearer ${request.processorConfig.apiKey}`,
-      'Content-type': 'application/x-www-form-urlencoded',
-    };
-
     // Capture paymentIntent using the Stripe PaymentIntent API Capture endpoint
     const capturePaymentIntentResponse = await HttpClient.request(
       `https://api.stripe.com/v1/payment_intents/${request.processorTransactionId}/capture`,
       {
         method: 'post',
-        headers: requestHeaders,
+        headers: setRequestHeaders(request),
         body: '',
       },
     );
@@ -130,18 +119,12 @@ const StripeConnection: ProcessorConnection<APIKeyCredentials, CardDetails> = {
   async cancel(
     request: RawCancelRequest<APIKeyCredentials>,
   ): Promise<ParsedCancelResponse> {
-    // Set request headers for all post requests
-    const requestHeaders = {
-      'Authorization': `Bearer ${request.processorConfig.apiKey}`,
-      'Content-type': 'application/x-www-form-urlencoded',
-    };
-
     // User the Stripe PaymentIntent  to cancel the transaction
     const cancelPaymentIntentResponse = await HttpClient.request(
       `https://api.stripe.com/v1/payment_intents/${request.processorTransactionId}/cancel`,
       {
         method: 'post',
-        headers: requestHeaders,
+        headers: setRequestHeaders(request),
         body: '',
       },
     );

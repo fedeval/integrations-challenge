@@ -3,10 +3,15 @@ import {
   ParsedAuthorizationResponse,
   ParsedCancelResponse,
   ParsedCaptureResponse,
+  RawAuthorizationRequest,
+  RawCaptureRequest,
+  RawCancelRequest,
+  APIKeyCredentials,
+  CardDetails
 } from '@primer-io/app-framework';
 
 // Utility to handle request errors
-export default function handleError(error: {
+export function handleError(error: {
   decline_code?: string;
   message: string;
 }): ParsedAuthorizationResponse | ParsedCaptureResponse | ParsedCancelResponse {
@@ -34,4 +39,12 @@ export default function handleError(error: {
     errorMessage: error.message,
     transactionStatus: 'FAILED',
   };
+}
+
+// Utility to set API request headers
+export function setRequestHeaders(request: RawAuthorizationRequest<APIKeyCredentials, CardDetails> | RawCaptureRequest<APIKeyCredentials> | RawCancelRequest<APIKeyCredentials>) {
+  return {
+    'Authorization': `Bearer ${request.processorConfig.apiKey}`,
+    'Content-type': 'application/x-www-form-urlencoded',
+  }
 }
