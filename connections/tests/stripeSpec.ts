@@ -60,4 +60,24 @@ describe('Authorize method', () => {
     })
     expect(Object.keys(response).includes('declineReason')).toBe(true)
   })
+
+  it('returns transactionStatus FAILED when authorization request fails without decline_code', async () => {
+    testCard.cardNumber = testCardErrors.incorrect_number
+    const response: ParsedAuthorizationResponse = await StripeConnection.authorize({
+      processorConfig,
+      ...testTransaction,
+      paymentMethod: { ...testCard }
+    })
+    expect(response.transactionStatus).toBe('FAILED')
+  })
+
+  it('returns an errorMessage when authorization request fails without decline_code', async () => {
+    testCard.cardNumber = testCardErrors.incorrect_number
+    const response: ParsedAuthorizationResponse = await StripeConnection.authorize({
+      processorConfig,
+      ...testTransaction,
+      paymentMethod: { ...testCard }
+    })
+    expect(Object.keys(response).includes('errorMessage')).toBe(true)
+  })
 })
