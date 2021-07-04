@@ -23,7 +23,7 @@ After cloning the repo, all the project dependencies can be installed using Yarn
 yarn install
 ```
 
-### Running the server ###
+### Running the code ###
 
 To execute the `main.ts` file use the following command in terminal:
 
@@ -32,7 +32,7 @@ yarn start:processors
 ```
 
 
-### Scripts ###
+### Additional Scripts ###
 
 The following actions can be executed through npm scripts:
 
