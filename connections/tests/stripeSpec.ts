@@ -4,6 +4,9 @@ import {
   ParsedAuthorizationResponse,
   ParsedCancelResponse,
   ParsedCaptureResponse, } from '@primer-io/app-framework';
+import * as dotenv from 'dotenv';
+
+dotenv.config()
 
 const processorConfig = StripeConnection.configuration
 const testTransaction = {
@@ -80,4 +83,90 @@ describe('Authorize method', () => {
     })
     expect(Object.keys(response).includes('errorMessage')).toBe(true)
   })
+
+  afterAll(() => testCard.cardNumber = '4111111111111111')
+})
+
+describe('Capture method', () => {
+  let authorizedTransaction: ParsedAuthorizationResponse
+
+  beforeAll(async() => {
+    authorizedTransaction = await StripeConnection.authorize({
+      processorConfig,
+      ...testTransaction,
+      paymentMethod: { ...testCard }
+    })
+  })
+
+  it('returns a SETTLED transactionStatus when funds are successfully captured', async() => {
+    const response: ParsedCaptureResponse = await StripeConnection.capture({
+      // @ts-ignore
+      processorTransactionId: authorizedTransaction.processorTransactionId,
+      processorConfig
+    })
+    expect(response.transactionStatus).toBe('SETTLED')
+  })
+
+  it('returns a FAILED transactionStatus when the request fails', async () => {
+    processorConfig.apiKey = 'not a valid key'
+    const response: ParsedCaptureResponse = await StripeConnection.capture({
+      // @ts-ignore
+      processorTransactionId: authorizedTransaction.processorTransactionId,
+      processorConfig
+    })
+    expect(response.transactionStatus).toBe('FAILED')
+  })
+
+  it('returns an errorMessage when the request fails', async () => {
+    const response: ParsedCaptureResponse = await StripeConnection.capture({
+      // @ts-ignore
+      processorTransactionId: authorizedTransaction.processorTransactionId,
+      processorConfig
+    })
+    expect(Object.keys(response).includes('errorMessage')).toBe(true)
+  })
+
+  afterAll(() => processorConfig.apiKey = process.env.STRIPE_API_KEY as string)
+})
+
+describe('Cancel method', () => {
+  let authorizedTransaction: ParsedAuthorizationResponse
+
+  beforeAll(async() => {
+    authorizedTransaction = await StripeConnection.authorize({
+      processorConfig,
+      ...testTransaction,
+      paymentMethod: { ...testCard }
+    })
+  })
+
+  it('returns a CANCELLED transactionStatus when funds are successfully canceled', async() => {
+    const response: ParsedCancelResponse = await StripeConnection.cancel({
+      // @ts-ignore
+      processorTransactionId: authorizedTransaction.processorTransactionId,
+      processorConfig
+    })
+    expect(response.transactionStatus).toBe('CANCELLED')
+  })
+
+  it('returns a FAILED transactionStatus when the request fails', async () => {
+    processorConfig.apiKey = 'not a valid key'
+    const response: ParsedCancelResponse = await StripeConnection.cancel({
+      // @ts-ignore
+      processorTransactionId: authorizedTransaction.processorTransactionId,
+      processorConfig
+    })
+    expect(response.transactionStatus).toBe('FAILED')
+  })
+
+  it('returns an errorMessage when the request fails', async () => {
+    const response: ParsedCancelResponse = await StripeConnection.cancel({
+      // @ts-ignore
+      processorTransactionId: authorizedTransaction.processorTransactionId,
+      processorConfig
+    })
+    expect(Object.keys(response).includes('errorMessage')).toBe(true)
+  })
+
+  afterAll(() => processorConfig.apiKey = process.env.STRIPE_API_KEY as string)
 })
