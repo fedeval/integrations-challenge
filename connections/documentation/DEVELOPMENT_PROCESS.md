@@ -32,7 +32,8 @@ First of all I tried to understand at a high level what the online payment ecosy
 
 At the center of the four corners there are the Card Networks (Visa, Mastercard) through which payment information and funds flow.
 
-[Image of Basic Payment Transaction]
+![Online Payment Flow](https://github.com/fedeval/integrations-challenge/blob/master/connections/documentation/images/online_payment_flow.png?raw=true)
+
 
 Stripe fits into this model with a dual role of Payment Gateway and Processor. As a Gateway, it offers software that encrypts credit card information on a merchant‘s server and sends it to the acquirer. As a Processor, it facilitates the credit card transaction by sending payment information between the merchant, the issuing bank, and the acquirer.
 
@@ -154,4 +155,4 @@ As a final step before actually starting to write some code I used [Postman](htt
 
 ### Code, Test, Refactor ###
 
-Once I had been through all the steps described the code I got into writing the actual code. I stress tested my code mainly using `console.log`and modifying the input parameters in the `main.ts` manually as well as using some inputs provided by Stripe at [https://stripe.com/docs/testing](https://stripe.com/docs/testing) to test specific error cases such as a declined transaction for `insufficient_funds` for instance. I have included comments in the code itself to document how I broke down each methods in different steps.
+Once I had been through all the steps described the code I got into writing the actual code. I stress tested my code both using `console.log`and modifying the input parameters in the `main.ts` manually during development as well as using some inputs provided by Stripe at [https://stripe.com/docs/testing](https://stripe.com/docs/testing) to run automated unit tests using Jasmine. I have included comments in the code itself to document how I broke down each methods in different steps.
